@@ -248,7 +248,6 @@ if __name__ == "__main__":
         except ValueError:
             selected_genres = set()
 
-        # ジャンルで絞り込み。その他のジャンルは除外）
     if selected_genres:
         def _int_genre(p):
             g = get_genre_value(p)
@@ -256,7 +255,6 @@ if __name__ == "__main__":
                 return int(g)
             except (TypeError, ValueError):
                 return -1
-        products = [p for p in products if _int_genre(p) in selected_genres]
 
     # --- Firebaseからの prefs を読み取り ---
     user_prefs = {}
