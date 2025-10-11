@@ -1,65 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
+import { withAuth } from '@/lib/middleware';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 // GET /api/user-information - ユーザー情報を取得
-export async function GET(request: NextRequest) {
-  try {
-    // Authorizationヘッダーからトークンを取得
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '認証トークンが必要です' }, { status: 401 });
-    }
+export const GET = withAuth(async (_req: NextRequest, uid: string) =>  {
+	// getCollectionは形式が違うので出力しない
+	const snapshot = await adminDb
+		.collection("users")
+		.doc(uid)
+		.collection("userInformation")
+		.doc("profile")
+		.get();
 
-    const token = authHeader.split('Bearer ')[1];
-    
-    // トークンを検証してuidを取得
-    let uid: string;
-    try {
-      const decodedToken = await adminAuth.verifyIdToken(token);
-      uid = decodedToken.uid;
-    } catch (error) {
-      console.error('トークン検証エラー:', error);
-      return NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 });
-    }
-
-    // Firestoreからユーザー情報を取得
-    const userDoc = await adminDb.collection('users').doc(uid).get();
-    
-    if (!userDoc.exists) {
-      // ドキュメントが存在しない場合、デフォルト値を返す
-      const defaultData = {
-        name: '',
-        monthlyBudget: 50000,
-        resetDay: 1
-      };
-      
-      // デフォルト値でドキュメントを作成
-      await adminDb.collection('users').doc(uid).set({
-        userName: '',
-        monthlyBudget: 50000,
-        resetDay: 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-      
-      return NextResponse.json(defaultData);
-    }
-    
-    const userData = userDoc.data();
+	const userData = snapshot.docs.map((doc) => ({
+	  ...doc.data()
+	}));
     
     // レスポンス形式に合わせてデータを整形
     const response = {
       name: userData?.userName || '',
-      monthlyBudget: userData?.monthlyBudget || 50000,
+      monthlyBudget: userData?.monthlyBudget || null,
       resetDay: userData?.resetDay || 1,
       surveyCompleted: userData?.surveyCompleted || false
     };
 
     return NextResponse.json(response);
-  } catch (error) {
-    console.error('ユーザー情報取得エラー:', error);
-    return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
-  }
 }
 
 // POST /api/user-information - ユーザー情報を初期設定（健康設定）
