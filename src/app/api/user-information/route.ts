@@ -2,29 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/middleware';
 import { adminDb } from '@/lib/firebaseAdmin';
 
-// GET /api/user-information - ユーザー情報を取得
-export const GET = withAuth(async (_req: NextRequest, uid: string) =>  {
-	// getCollectionは形式が違うので出力しない
-	const snapshot = await adminDb
-		.collection("users")
-		.doc(uid)
-		.collection("userInformation")
-		.doc("profile")
-		.get();
+export const GET = withAuth(async (_req: NextRequest, uid: string) => {
+	const doc = await adminDb.collection('users').doc(uid).get();
+	const data = doc.data() || {};
 
-	const userData = snapshot.docs.map((doc) => ({
-	  ...doc.data()
-	}));
-    
-    // レスポンス形式に合わせてデータを整形
-    const response = {
-      name: userData?.userName || '',
-      monthlyBudget: userData?.monthlyBudget || null,
-      resetDay: userData?.resetDay || 1,
-      surveyCompleted: userData?.surveyCompleted || false
-    };
+	const response = {
+		name: data.userName || '',
+		monthlyBudget: data.monthlyBudget ?? 50000,
+		resetDay: data.resetDay ?? 1,
+		surveyCompleted: data.surveyCompleted ?? false,
+	};
 
-    return NextResponse.json(response);
+	return NextResponse.json(response);
 });
 
 // POST /api/user-information - ユーザー情報を初期設定（健康設定）
