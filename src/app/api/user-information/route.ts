@@ -25,31 +25,12 @@ export const GET = withAuth(async (_req: NextRequest, uid: string) =>  {
     };
 
     return NextResponse.json(response);
-}
+});
 
 // POST /api/user-information - ユーザー情報を初期設定（健康設定）
-export async function POST(request: NextRequest) {
-  try {
-    // Authorizationヘッダーからトークンを取得
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '認証トークンが必要です' }, { status: 401 });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    
-    // トークンを検証してuidを取得
-    let uid: string;
-    try {
-      const decodedToken = await adminAuth.verifyIdToken(token);
-      uid = decodedToken.uid;
-    } catch (error) {
-      console.error('トークン検証エラー:', error);
-      return NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 });
-    }
-
+export const POST = withAuth(async (req: NextRequest, uid: string) => {
     // リクエストボディを取得
-    const body = await request.json();
+    const body = await req.json();
     const { disease, increaseNutrients, reduceNutrients } = body;
 
     // バリデーション
@@ -143,11 +124,7 @@ export async function POST(request: NextRequest) {
     }, { merge: true });
 
     return NextResponse.json({ msg: 'success' });
-  } catch (error) {
-    console.error('ユーザー情報設定エラー:', error);
-    return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 });
-  }
-}
+});
 
 // PATCH /api/user-information - ユーザー情報を更新
 export async function PATCH(request: NextRequest) {
